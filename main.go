@@ -6,11 +6,12 @@ import (
 	"os"
 
 	"github.com/ekkasitProject/shop-game/config"
+	"github.com/ekkasitProject/shop-game/pkg/database"
+	"github.com/ekkasitProject/shop-game/server"
 )
 
 func main() {
 	ctx := context.Background()
-	_ = ctx
 	// Initialize config
 	cfg := config.LoadConfig(func() string {
 		if len(os.Args) < 2 {
@@ -19,5 +20,11 @@ func main() {
 
 		return os.Args[1]
 	}())
-	log.Printf("Config: %+v", cfg)
+
+	// Initialize database
+	db := database.DbConn(ctx, &cfg)
+	defer db.Disconnect(ctx)
+
+	// Start server
+	server.Start(ctx, &cfg, db)
 }
