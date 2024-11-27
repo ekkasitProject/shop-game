@@ -18,5 +18,5 @@ func (s *server) inventoryService() {
 	inventory := s.app.Group("/inventory_v1")
 
 	// Health check
-	inventory.GET("/health", s.healthCheckService)
+	inventory.GET("/", s.healthCheckService)
 }

@@ -1,9 +1,9 @@
 package server
 
 import (
-	itemUsecase "github.com/ekkasitProject/shop-game/modules/item/ItemUsecase"
 	"github.com/ekkasitProject/shop-game/modules/item/itemHandler"
 	"github.com/ekkasitProject/shop-game/modules/item/itemRepository"
+	"github.com/ekkasitProject/shop-game/modules/item/itemUsecase"
 )
 
 func (s *server) itemService() {
@@ -18,5 +18,5 @@ func (s *server) itemService() {
 	item := s.app.Group("/item_v1")
 
 	// Health check
-	item.GET("/health", s.healthCheckService)
+	item.GET("/", s.healthCheckService)
 }
