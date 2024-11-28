@@ -9,14 +9,14 @@ type (
 	InventoryQueueHandlerService interface {
 	}
 
-	InventoryQueueHandler struct {
+	inventoryQueueHandler struct {
 		cfg              *config.Config
 		inventoryUsecase inventoryUsecase.InventoryUsecaseService
 	}
 )
 
 func NewInventoryQueueHandler(cfg *config.Config, inventoryUsecase inventoryUsecase.InventoryUsecaseService) InventoryQueueHandlerService {
-	return &InventoryQueueHandler{
+	return &inventoryQueueHandler{
 		cfg:              cfg,
 		inventoryUsecase: inventoryUsecase,
 	}

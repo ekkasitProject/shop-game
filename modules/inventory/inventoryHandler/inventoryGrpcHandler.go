@@ -1,15 +1,25 @@
 package inventoryHandler
 
-import "github.com/ekkasitProject/shop-game/modules/inventory/inventoryUsecase"
+import (
+	"context"
+
+	inventoryPb "github.com/ekkasitProject/shop-game/modules/inventory/inventoryPb"
+	"github.com/ekkasitProject/shop-game/modules/inventory/inventoryUsecase"
+)
 
 type (
-	inventoryGrpcHandlerService struct {
+	inventoryGrpcHandler struct {
 		inventoryUsecase inventoryUsecase.InventoryUsecaseService
+		inventoryPb.UnimplementedInventoryGrpcServiceServer
 	}
 )
 
-func NewInventoryGrpcHandler(inventoryUsecase inventoryUsecase.InventoryUsecaseService) *inventoryGrpcHandlerService {
-	return &inventoryGrpcHandlerService{
+func NewInventoryGrpcHandler(inventoryUsecase inventoryUsecase.InventoryUsecaseService) *inventoryGrpcHandler {
+	return &inventoryGrpcHandler{
 		inventoryUsecase: inventoryUsecase,
 	}
+}
+
+func (g *inventoryGrpcHandler) IsAvailableToSell(ctx context.Context, req *inventoryPb.IsAvailableToSellReq) (*inventoryPb.IsAvailableToSellRes, error) {
+	return &inventoryPb.IsAvailableToSellRes{}, nil
 }

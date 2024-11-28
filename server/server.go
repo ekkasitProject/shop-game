@@ -61,6 +61,8 @@ func Start(pctx context.Context, cfg *config.Config, db *mongo.Client) {
 		middleware: newMiddleware(cfg),
 	}
 
+	// jwtauth.SetApiKey(cfg.Jwt.ApiSceretKey)
+
 	// Basic Middleware
 	// Request Timeout
 	s.app.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
