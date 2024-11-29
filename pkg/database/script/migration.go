@@ -25,7 +25,10 @@ func main() {
 	case "player":
 		migration.PlayerMigrate(ctx, &cfg)
 	case "item":
+		migration.ItemMigrate(ctx, &cfg)
 	case "inventory":
-
+		migration.InventoryMigrate(ctx, &cfg)
+	case "payment":
+		migration.PaymentMigrate(ctx, &cfg)
 	}
 }
