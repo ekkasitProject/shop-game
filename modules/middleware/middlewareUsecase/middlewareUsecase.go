@@ -1,16 +1,19 @@
 package middlewareUsecase
 
 import (
+	"errors"
+
 	"github.com/ekkasitProject/shop-game/config"
 	"github.com/ekkasitProject/shop-game/modules/middleware/middlewareRepository"
 	"github.com/ekkasitProject/shop-game/pkg/jwtauth"
+	"github.com/ekkasitProject/shop-game/pkg/rbac"
 	"github.com/labstack/echo/v4"
 )
 
 type (
 	MiddlewareUsecaseService interface {
 		JwtAuthorization(c echo.Context, cfg *config.Config, accessToken string) (echo.Context, error)
-		// RbacAuthorization(c echo.Context, cfg *config.Config, expected []int) (echo.Context, error)
+		RbacAuthorization(c echo.Context, cfg *config.Config, expected []int) (echo.Context, error)
 		// PlayerIdParamValidation(c echo.Context) (echo.Context, error)
 	}
 
@@ -41,26 +44,26 @@ func (u *middlewareUsecase) JwtAuthorization(c echo.Context, cfg *config.Config,
 	return c, nil
 }
 
-// func (u *middlewareUsecase) RbacAuthorization(c echo.Context, cfg *config.Config, expected []int) (echo.Context, error) {
-// 	ctx := c.Request().Context()
+func (u *middlewareUsecase) RbacAuthorization(c echo.Context, cfg *config.Config, expected []int) (echo.Context, error) {
+	ctx := c.Request().Context()
 
-// 	playerRoleCode := c.Get("role_code").(int)
+	playerRoleCode := c.Get("role_code").(int)
 
-// 	rolesCount, err := u.middlewareRepository.RolesCount(ctx, cfg.Grpc.AuthUrl)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	rolesCount, err := u.middlewareRepository.RolesCount(ctx, cfg.Grpc.AuthUrl)
+	if err != nil {
+		return nil, err
+	}
 
-// 	playerRoleBinary := rbac.IntToBinary(playerRoleCode, int(rolesCount))
+	playerRoleBinary := rbac.IntToBinary(playerRoleCode, int(rolesCount))
 
-// 	for i := 0; i < int(rolesCount); i++ {
-// 		if playerRoleBinary[i]&expected[i] == 1 {
-// 			return c, nil
-// 		}
-// 	}
+	for i := 0; i < int(rolesCount); i++ {
+		if playerRoleBinary[i]&expected[i] == 1 {
+			return c, nil
+		}
+	}
 
-// 	return nil, errors.New("error: permission denied")
-// }
+	return nil, errors.New("error: permission denied")
+}
 
 // func (u *middlewareUsecase) PlayerIdParamValidation(c echo.Context) (echo.Context, error) {
 // 	playerIdReq := c.Param("player_id")
