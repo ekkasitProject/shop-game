@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func playerDbConn(pctx context.Context, cfg *config.Config) *mongo.Database {
@@ -21,30 +22,34 @@ func PlayerMigrate(pctx context.Context, cfg *config.Config) {
 	db := playerDbConn(pctx, cfg)
 	defer db.Client().Disconnect(pctx)
 
-	// player_transactions
-	collection := db.Collection("player_transactions")
+	col := db.Collection("player_transactions")
 
 	// indexs
-	indexs, _ := collection.Indexes().CreateMany(pctx, []mongo.IndexModel{
-		{Keys: bson.D{{Key: "_id", Value: 1}}},
-		{Keys: bson.D{{Key: "player_id", Value: 1}}},
+	indexs, _ := col.Indexes().CreateMany(pctx, []mongo.IndexModel{
+		{Keys: bson.D{{"_id", 1}}},
+		{Keys: bson.D{{"player_id", 1}}},
 	})
 	log.Println(indexs)
-	// players
-	collection = db.Collection("players")
+
+	col = db.Collection("players")
+
 	// indexs
-	indexs, _ = collection.Indexes().CreateMany(pctx, []mongo.IndexModel{
-		{Keys: bson.D{{Key: "_id", Value: 1}}},
-		{Keys: bson.D{{Key: "email", Value: 1}}},
+	indexs, _ = col.Indexes().CreateMany(pctx, []mongo.IndexModel{
+		{Keys: bson.D{{"_id", 1}}},
+		{Keys: bson.D{{"email", 1}}},
 	})
 	log.Println(indexs)
 
 	documents := func() []any {
 		roles := []*player.Player{
 			{
-				Email:    "player1@gmail.com",
-				Password: "123456",
-				Username: "player001",
+				Email: "player001@sekai.com",
+				Password: func() string {
+					// Hashing password
+					hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
+					return string(hashedPassword)
+				}(),
+				Username: "Player001",
 				PlayerRoles: []player.PlayerRole{
 					{
 						RoleTitle: "player",
@@ -55,9 +60,13 @@ func PlayerMigrate(pctx context.Context, cfg *config.Config) {
 				UpdatedAt: utils.LocalTime(),
 			},
 			{
-				Email:    "player2@gmail.com",
-				Password: "123456",
-				Username: "player002",
+				Email: "player002@sekai.com",
+				Password: func() string {
+					// Hashing password
+					hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
+					return string(hashedPassword)
+				}(),
+				Username: "Player002",
 				PlayerRoles: []player.PlayerRole{
 					{
 						RoleTitle: "player",
@@ -68,9 +77,13 @@ func PlayerMigrate(pctx context.Context, cfg *config.Config) {
 				UpdatedAt: utils.LocalTime(),
 			},
 			{
-				Email:    "player3@gmail.com",
-				Password: "123456",
-				Username: "player003",
+				Email: "player003@sekai.com",
+				Password: func() string {
+					// Hashing password
+					hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
+					return string(hashedPassword)
+				}(),
+				Username: "Player003",
 				PlayerRoles: []player.PlayerRole{
 					{
 						RoleTitle: "player",
@@ -81,9 +94,13 @@ func PlayerMigrate(pctx context.Context, cfg *config.Config) {
 				UpdatedAt: utils.LocalTime(),
 			},
 			{
-				Email:    "admin1@gmail.com",
-				Password: "123456",
-				Username: "admin001",
+				Email: "admin001@sekai.com",
+				Password: func() string {
+					// Hashing password
+					hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
+					return string(hashedPassword)
+				}(),
+				Username: "Player003",
 				PlayerRoles: []player.PlayerRole{
 					{
 						RoleTitle: "player",
@@ -98,6 +115,7 @@ func PlayerMigrate(pctx context.Context, cfg *config.Config) {
 				UpdatedAt: utils.LocalTime(),
 			},
 		}
+
 		docs := make([]any, 0)
 		for _, r := range roles {
 			docs = append(docs, r)
@@ -105,34 +123,32 @@ func PlayerMigrate(pctx context.Context, cfg *config.Config) {
 		return docs
 	}()
 
-	results, err := collection.InsertMany(pctx, documents)
+	results, err := col.InsertMany(pctx, documents, nil)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
-	log.Println("Migrate auth complete :", results.InsertedIDs)
+	log.Println("Migrate auth completed: ", results)
 
-	// Create player transactions
 	playerTransactions := make([]any, 0)
 	for _, p := range results.InsertedIDs {
 		playerTransactions = append(playerTransactions, &player.PlayerTransaction{
 			PlayerId:  "player:" + p.(primitive.ObjectID).Hex(),
 			Amount:    1000,
-			CreatedAt: utils.LocalTime().Local(),
+			CreatedAt: utils.LocalTime(),
 		})
 	}
-	// Insert the transactions into player_transactions collection
-	transactionCollection := db.Collection("player_transactions")
-	transactionResults, err := transactionCollection.InsertMany(pctx, playerTransactions)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Player transactions migration complete:", transactionResults.InsertedIDs)
 
-	// Fix the syntax errors in this part
-	collection = db.Collection("player_transaction_queue")
-	result, err := collection.InsertOne(pctx, bson.M{"offset": -1})
+	col = db.Collection("player_transactions")
+	results, err = col.InsertMany(pctx, playerTransactions, nil)
 	if err != nil {
 		panic(err)
 	}
-	log.Println("Migrate Player complete :", result)
+	log.Println("Migrate player_transactions completed: ", results)
+
+	col = db.Collection("player_transactions_queue")
+	result, err := col.InsertOne(pctx, bson.M{"offset": -1}, nil)
+	if err != nil {
+		panic(err)
+	}
+	log.Println("Migrate player_transactions_queue completed: ", result)
 }

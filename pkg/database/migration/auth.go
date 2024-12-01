@@ -19,48 +19,54 @@ func AuthMigrate(pctx context.Context, cfg *config.Config) {
 	db := authDbConn(pctx, cfg)
 	defer db.Client().Disconnect(pctx)
 
-	collection := db.Collection("auth")
+	col := db.Collection("auth")
 
 	// indexs
-	indexs, _ := collection.Indexes().CreateMany(pctx, []mongo.IndexModel{
-		{Keys: bson.D{{Key: "_id", Value: 1}}},
-		{Keys: bson.D{{Key: "player_id", Value: 1}}},
-		{Keys: bson.D{{Key: "refresh_token", Value: 1}}},
+
+	// auth
+	indexs, _ := col.Indexes().CreateMany(pctx, []mongo.IndexModel{
+		{Keys: bson.D{{"_id", 1}}},
+		{Keys: bson.D{{"player_id", 1}}},
+		{Keys: bson.D{{"refresh_token", 1}}},
 	})
 	for _, index := range indexs {
-		log.Println("Index", index)
+		log.Printf("Index: %s", index)
 	}
 
 	// roles
-	collection = db.Collection("roles")
-	// indexs
-	indexs, _ = collection.Indexes().CreateMany(pctx, []mongo.IndexModel{
-		{Keys: bson.D{{Key: "_id", Value: 1}}},
-		{Keys: bson.D{{Key: "code", Value: 1}}},
+	col = db.Collection("roles")
+
+	indexs, _ = col.Indexes().CreateMany(pctx, []mongo.IndexModel{
+		{Keys: bson.D{{"_id", 1}}},
+		{Keys: bson.D{{"code", 1}}},
 	})
 	for _, index := range indexs {
-		log.Println("Index", index)
+		log.Printf("Index: %s", index)
 	}
+
 	// roles data
-	document := func() []any {
+	documents := func() []any {
 		roles := []*auth.Role{
-			{Title: "player",
-				Code: 0,
+			{
+				Title: "player",
+				Code:  0,
 			},
-			{Title: "admin",
-				Code: 1,
+			{
+				Title: "admin",
+				Code:  1,
 			},
 		}
+
 		docs := make([]any, 0)
 		for _, r := range roles {
 			docs = append(docs, r)
 		}
 		return docs
 	}()
-	// insert many
-	result, err := collection.InsertMany(pctx, document)
+
+	results, err := col.InsertMany(pctx, documents, nil)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
-	log.Println("Migrate auth complete :", result.InsertedIDs)
+	log.Println("Migrate auth completed: ", results)
 }
