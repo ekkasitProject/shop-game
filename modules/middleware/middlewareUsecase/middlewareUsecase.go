@@ -2,6 +2,7 @@ package middlewareUsecase
 
 import (
 	"errors"
+	"log"
 
 	"github.com/ekkasitProject/shop-game/config"
 	"github.com/ekkasitProject/shop-game/modules/middleware/middlewareRepository"
@@ -14,7 +15,7 @@ type (
 	MiddlewareUsecaseService interface {
 		JwtAuthorization(c echo.Context, cfg *config.Config, accessToken string) (echo.Context, error)
 		RbacAuthorization(c echo.Context, cfg *config.Config, expected []int) (echo.Context, error)
-		// PlayerIdParamValidation(c echo.Context) (echo.Context, error)
+		PlayerIdParamValidation(c echo.Context) (echo.Context, error)
 	}
 
 	middlewareUsecase struct {
@@ -65,19 +66,19 @@ func (u *middlewareUsecase) RbacAuthorization(c echo.Context, cfg *config.Config
 	return nil, errors.New("error: permission denied")
 }
 
-// func (u *middlewareUsecase) PlayerIdParamValidation(c echo.Context) (echo.Context, error) {
-// 	playerIdReq := c.Param("player_id")
-// 	playerIdToken := c.Get("player_id").(string)
+func (u *middlewareUsecase) PlayerIdParamValidation(c echo.Context) (echo.Context, error) {
+	playerIdReq := c.Param("player_id")
+	playerIdToken := c.Get("player_id").(string)
 
-// 	if playerIdToken == "" {
-// 		log.Printf("Error: player_id not found")
-// 		return nil, errors.New("error: player_id is required")
-// 	}
+	if playerIdToken == "" {
+		log.Printf("Error: player_id not found")
+		return nil, errors.New("error: player_id is required")
+	}
 
-// 	if playerIdToken != playerIdReq {
-// 		log.Printf("Error: player_id not match, player_id_req: %s, player_id_token: %s", playerIdReq, playerIdToken)
-// 		return nil, errors.New("error: player_id not match")
-// 	}
+	if playerIdToken != playerIdReq {
+		log.Printf("Error: player_id not match, player_id_req: %s, player_id_token: %s", playerIdReq, playerIdToken)
+		return nil, errors.New("error: player_id not match")
+	}
 
-// 	return c, nil
-// }
+	return c, nil
+}

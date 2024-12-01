@@ -28,6 +28,7 @@ func (r *middlewareRepository) AccessTokenSearch(pctx context.Context, grpcUrl, 
 	ctx, cancel := context.WithTimeout(pctx, 30*time.Second)
 	defer cancel()
 
+	jwtauth.SetApiKeyInContext(&ctx)
 	conn, err := grpccon.NewGrpcClient(grpcUrl)
 	if err != nil {
 		log.Printf("Error: gRPC connection failed: %s", err.Error())
@@ -58,6 +59,7 @@ func (r *middlewareRepository) RolesCount(pctx context.Context, grpcUrl string) 
 	ctx, cancel := context.WithTimeout(pctx, 30*time.Second)
 	defer cancel()
 
+	jwtauth.SetApiKeyInContext(&ctx)
 	conn, err := grpccon.NewGrpcClient(grpcUrl)
 	if err != nil {
 		log.Printf("Error: gRPC connection failed: %s", err.Error())

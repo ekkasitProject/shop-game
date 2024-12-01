@@ -13,6 +13,7 @@ import (
 	"github.com/ekkasitProject/shop-game/modules/middleware/middlewareHandler"
 	"github.com/ekkasitProject/shop-game/modules/middleware/middlewareRepository"
 	"github.com/ekkasitProject/shop-game/modules/middleware/middlewareUsecase"
+	"github.com/ekkasitProject/shop-game/pkg/jwtauth"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -61,7 +62,7 @@ func Start(pctx context.Context, cfg *config.Config, db *mongo.Client) {
 		middleware: newMiddleware(cfg),
 	}
 
-	// jwtauth.SetApiKey(cfg.Jwt.ApiSceretKey)
+	jwtauth.SetApiKey(cfg.Jwt.ApiSecretKey)
 
 	// Basic Middleware
 	// Request Timeout

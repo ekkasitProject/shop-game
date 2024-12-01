@@ -1,6 +1,7 @@
 package grpccon
 
 import (
+	"context"
 	"errors"
 	"log"
 	"net"
@@ -8,10 +9,12 @@ import (
 	authPb "github.com/ekkasitProject/shop-game/modules/auth/authPb"
 	itemPb "github.com/ekkasitProject/shop-game/modules/item/itemPb"
 	playerPb "github.com/ekkasitProject/shop-game/modules/player/playerPb"
+	"github.com/ekkasitProject/shop-game/pkg/jwtauth"
 
 	"github.com/ekkasitProject/shop-game/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
 
 type (
@@ -30,33 +33,33 @@ type (
 	}
 )
 
-// func (g *grpcAuth) unaryAuthorization(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-// 	md, ok := metadata.FromIncomingContext(ctx)
-// 	if !ok {
-// 		log.Printf("Error: Metadata not found")
-// 		return nil, errors.New("error: metadata not found")
-// 	}
+func (g *grpcAuth) unaryAuthorization(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		log.Printf("Error: Metadata not found")
+		return nil, errors.New("error: metadata not found")
+	}
 
-// 	authHeader, ok := md["auth"]
-// 	if !ok {
-// 		log.Printf("Error: Metadata not found")
-// 		return nil, errors.New("error: metadata not found")
-// 	}
+	authHeader, ok := md["auth"]
+	if !ok {
+		log.Printf("Error: Metadata not found")
+		return nil, errors.New("error: metadata not found")
+	}
 
-// 	if len(authHeader) == 0 {
-// 		log.Printf("Error: Metadata not found")
-// 		return nil, errors.New("error: metadata not found")
-// 	}
+	if len(authHeader) == 0 {
+		log.Printf("Error: Metadata not found")
+		return nil, errors.New("error: metadata not found")
+	}
 
-// 	claims, err := jwtauth.ParseToken(g.secretKey, string(authHeader[0]))
-// 	if err != nil {
-// 		log.Printf("Error: Parse token failed: %s", err.Error())
-// 		return nil, errors.New("error: token is invalid")
-// 	}
-// 	log.Printf("claims: %v", claims)
+	claims, err := jwtauth.ParseToken(g.secretKey, string(authHeader[0]))
+	if err != nil {
+		log.Printf("Error: Parse token failed: %s", err.Error())
+		return nil, errors.New("error: token is invalid")
+	}
+	log.Printf("claims: %v", claims)
 
-// 	return handler(ctx, req)
-// }
+	return handler(ctx, req)
+}
 
 func (g *grpcClientFactory) Auth() authPb.AuthGrpcServiceClient {
 	return authPb.NewAuthGrpcServiceClient(g.client)
@@ -89,11 +92,11 @@ func NewGrpcClient(host string) (GrpcClientFactoryHandler, error) {
 func NewGrpcServer(cfg *config.Jwt, host string) (*grpc.Server, net.Listener) {
 	opts := make([]grpc.ServerOption, 0)
 
-	// grpcAuth := &grpcAuth{
-	// 	secretKey: cfg.ApiSceretKey,
-	// }
+	grpcAuth := &grpcAuth{
+		secretKey: cfg.ApiSecretKey,
+	}
 
-	// opts = append(opts, grpc.UnaryInterceptor(grpcAuth.unaryAuthorization))
+	opts = append(opts, grpc.UnaryInterceptor(grpcAuth.unaryAuthorization))
 
 	grpcServer := grpc.NewServer(opts...)
 
