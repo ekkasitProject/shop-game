@@ -31,13 +31,15 @@ type (
 	}
 
 	PlayerSavingAccount struct {
-		PlayerId string  `json:"player_id"`
+		PlayerId string  `json:"player_id" bson:"player_id"`
 		Balance  float64 `json:"balance" bson:"balance"`
 	}
+
 	PlayerTransaction struct {
-		PlayerId  string    `bson:"player_id"`
-		Amount    float64   `bson:"amount"`
-		CreatedAt time.Time `bson:"created_at"`
-		UpdatedAt time.Time `bson:"updated_at"`
+		Id        primitive.ObjectID `bson:"_id,omitempty"`
+		PlayerId  string             `bson:"player_id"`
+		Amount    float64            `bson:"amount"`
+		CreatedAt time.Time          `bson:"created_at"`
+		UpdatedAt time.Time          `bson:"updated_at"`
 	}
 )
