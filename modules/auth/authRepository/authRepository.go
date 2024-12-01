@@ -6,9 +6,11 @@ import (
 	"log"
 	"time"
 
+	"github.com/ekkasitProject/shop-game/config"
 	"github.com/ekkasitProject/shop-game/modules/auth"
 	playerPb "github.com/ekkasitProject/shop-game/modules/player/playerPb"
 	"github.com/ekkasitProject/shop-game/pkg/grpccon"
+	"github.com/ekkasitProject/shop-game/pkg/jwtauth"
 	"github.com/ekkasitProject/shop-game/pkg/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -23,6 +25,10 @@ type (
 		FindOnePlayerProfileToRefresh(pctx context.Context, grpcUrl string, req *playerPb.FindOnePlayerProfileToRefreshReq) (*playerPb.PlayerProfile, error)
 		UpdateOnePlayerCredential(pctx context.Context, credentialId string, req *auth.UpdateRefreshTokenReq) error
 		DeleteOnePlayerCredential(pctx context.Context, credentialId string) (int64, error)
+		FindOneAccessToken(pctx context.Context, accessToken string) (*auth.Credential, error)
+		// RolesCount(pctx context.Context) (int64, error)
+		AccessToken(cfg *config.Config, claims *jwtauth.Claims) string
+		RefreshToken(cfg *config.Config, claims *jwtauth.Claims) string
 	}
 
 	authRepository struct {
@@ -42,32 +48,39 @@ func (r *authRepository) CredentialSearch(pctx context.Context, grpcUrl string, 
 	ctx, cancel := context.WithTimeout(pctx, 30*time.Second)
 	defer cancel()
 
+	jwtauth.SetApiKeyInContext(&ctx)
 	conn, err := grpccon.NewGrpcClient(grpcUrl)
 	if err != nil {
 		log.Printf("Error: gRPC connection failed: %s", err.Error())
 		return nil, errors.New("error: gRPC connection failed")
 	}
+
 	result, err := conn.Player().CredentialSearch(ctx, req)
 	if err != nil {
 		log.Printf("Error: CredentialSearch failed: %s", err.Error())
-		return nil, errors.New("error: email or password in incorrect")
+		return nil, errors.New("error: email or password is incorrect")
 	}
+
 	return result, nil
 }
+
 func (r *authRepository) FindOnePlayerProfileToRefresh(pctx context.Context, grpcUrl string, req *playerPb.FindOnePlayerProfileToRefreshReq) (*playerPb.PlayerProfile, error) {
 	ctx, cancel := context.WithTimeout(pctx, 30*time.Second)
 	defer cancel()
 
+	jwtauth.SetApiKeyInContext(&ctx)
 	conn, err := grpccon.NewGrpcClient(grpcUrl)
 	if err != nil {
 		log.Printf("Error: gRPC connection failed: %s", err.Error())
 		return nil, errors.New("error: gRPC connection failed")
 	}
+
 	result, err := conn.Player().FindOnePlayerProfileToRefresh(ctx, req)
 	if err != nil {
 		log.Printf("Error: FindOnePlayerProfileToRefresh failed: %s", err.Error())
 		return nil, errors.New("error: player profile not found")
 	}
+
 	return result, nil
 }
 
@@ -76,14 +89,20 @@ func (r *authRepository) InsertOnePlayerCredential(pctx context.Context, req *au
 	defer cancel()
 
 	db := r.authDbConn()
-	collection := db.Collection("auth")
-	result, err := collection.InsertOne(ctx, req)
+	col := db.Collection("auth")
+
+	req.CreatedAt = utils.LocalTime()
+	req.UpdatedAt = utils.LocalTime()
+
+	result, err := col.InsertOne(ctx, req)
 	if err != nil {
-		log.Printf("Error: CredentialSearch failed: %s", err.Error())
+		log.Printf("Error: InsertOnePlayerCredential failed: %s", err.Error())
 		return primitive.NilObjectID, errors.New("error: insert one player credential failed")
 	}
+
 	return result.InsertedID.(primitive.ObjectID), nil
 }
+
 func (r *authRepository) FindOnePlayerCredential(pctx context.Context, credentialId string) (*auth.Credential, error) {
 	ctx, cancel := context.WithTimeout(pctx, 10*time.Second)
 	defer cancel()
@@ -142,4 +161,50 @@ func (r *authRepository) DeleteOnePlayerCredential(pctx context.Context, credent
 	log.Printf("DeleteOnePlayerCredential result: %v", result)
 
 	return result.DeletedCount, nil
+}
+
+func (r *authRepository) FindOneAccessToken(pctx context.Context, accessToken string) (*auth.Credential, error) {
+	ctx, cancel := context.WithTimeout(pctx, 10*time.Second)
+	defer cancel()
+
+	db := r.authDbConn()
+	col := db.Collection("auth")
+
+	credential := new(auth.Credential)
+	if err := col.FindOne(ctx, bson.M{"access_token": accessToken}).Decode(credential); err != nil {
+		log.Printf("Error: FindOneAccessToken failed: %s", err.Error())
+		return nil, errors.New("error: access token not found")
+	}
+
+	return credential, nil
+}
+
+// func (r *authRepository) RolesCount(pctx context.Context) (int64, error) {
+// 	ctx, cancel := context.WithTimeout(pctx, 10*time.Second)
+// 	defer cancel()
+
+// 	db := r.authDbConn()
+// 	col := db.Collection("roles")
+
+// 	count, err := col.CountDocuments(ctx, bson.M{})
+// 	if err != nil {
+// 		log.Printf("Error: RolesCount failed: %s", err.Error())
+// 		return -1, errors.New("error: roles count failed")
+// 	}
+
+// 	return count, nil
+// }
+
+func (r *authRepository) AccessToken(cfg *config.Config, claims *jwtauth.Claims) string {
+	return jwtauth.NewAccessToken(cfg.Jwt.AccessSecretKey, cfg.Jwt.AccessDuration, &jwtauth.Claims{
+		PlayerId: claims.PlayerId,
+		RoleCode: int(claims.RoleCode),
+	}).SignToken()
+}
+
+func (r *authRepository) RefreshToken(cfg *config.Config, claims *jwtauth.Claims) string {
+	return jwtauth.NewRefreshToken(cfg.Jwt.RefreshSecretKey, cfg.Jwt.RefreshDuration, &jwtauth.Claims{
+		PlayerId: claims.PlayerId,
+		RoleCode: int(claims.RoleCode),
+	}).SignToken()
 }
